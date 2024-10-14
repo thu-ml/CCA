@@ -1,0 +1,6 @@
+[submodule "VAR"]
+	path = VAR
+	url = https://github.com/FoundationVision/VAR.git
+[submodule "LlamaGen"]
+	path = LlamaGen
+	url = https://github.com/FoundationVision/LlamaGen.git
