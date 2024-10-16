@@ -374,9 +374,9 @@ def main(args):
                         model_weight = model.module.state_dict()  
                     checkpoint = {
                         "model": model_weight,
-                        "optimizer": optimizer.state_dict(),
-                        "steps": train_steps,
-                        "args": args
+                        # "optimizer": optimizer.state_dict(),
+                        # "steps": train_steps,
+                        # "args": args
                     }
                     if args.ema:
                         checkpoint["ema"] = ema.state_dict()
