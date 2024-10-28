@@ -232,10 +232,9 @@ def main(args):
     start_epoch = 0
 
     model.train()
-    if args.keep_dropout:
-        ref_model.train()
-    else:
-        ref_model.eval()
+    ref_model.train()
+    # if not args.keep_dropout:
+    #     ref_model.eval()
     # Variables for monitoring/logging purposes:
     log_steps = 0
     running_loss = 0
@@ -282,11 +281,11 @@ def main(args):
                 "tf32": contextlib.nullcontext(),
             }[args.mixed_precision]: 
                 with torch.no_grad():
-                    ref_all_logits, _ = ref_model(cond_idx=all_c_indices, idx=all_z_indices[:,:-1], targets=all_z_indices, training_behavior=True)
+                    ref_all_logits, _ = ref_model(cond_idx=all_c_indices, idx=all_z_indices[:,:-1], targets=all_z_indices)
                     ref_logits = ref_all_logits[:bz]
                     shuffled_ref_logits = ref_all_logits[bz:]
-                    # ref_logits, ref_sft_loss = ref_model(cond_idx=c_indices, idx=z_indices[:,:-1], targets=z_indices, training_behavior=True)
-                    # shuffled_ref_logits, shuffled_ref_sft_loss = ref_model(cond_idx=shuffled_c_indices, idx=z_indices[:,:-1], targets=z_indices, training_behavior=True)                     
+                    # ref_logits, ref_sft_loss = ref_model(cond_idx=c_indices, idx=z_indices[:,:-1], targets=z_indices)
+                    # shuffled_ref_logits, shuffled_ref_sft_loss = ref_model(cond_idx=shuffled_c_indices, idx=z_indices[:,:-1], targets=z_indices)                     
                     ref_sft_loss = shuffled_ref_sft_loss = torch.Tensor([0.0])
 
                 all_logits, _ = model(cond_idx=all_c_indices, idx=all_z_indices[:,:-1], targets=all_z_indices)
@@ -315,7 +314,7 @@ def main(args):
                     mixed_weight = torch.ones_like(neg_weight) * args.lambda_
                     mixed_weight[neg_weight] = 1.0
                     loss = -F.logsigmoid((img_logp_gap)*args.beta).mean() - (mixed_weight * F.logsigmoid(((neg_weight.float()*2-1) * negative_img_logp_gap)*args.beta)).mean()
-                    loss = loss / max(args.negw, 1.0)
+                    loss = loss / max(args.lambda_, 1.0)
                 else:
                     loss = - img_logp_gap.mean() + args.lambda_ * negative_img_logp_gap.mean()
             elif args.loss_type == "DPO":
@@ -433,7 +432,7 @@ if __name__ == "__main__":
     parser.add_argument("--lambda_", type=float, default=1000.0, help="CCA lambda")
     parser.add_argument("--loss_type", type=str, choices=["DPO", "Unlearning", "CCA"], default="CCA")
     parser.add_argument("--beta", type=float, default=0.02, help="CCA beta")
-    parser.add_argument("--keep_dropout", type=int, default=1, help="Whether enable dropout during training.")
+    parser.add_argument("--keep_dropout", action='store_true') # Whether enable dropout during training.
     # LlamaGen parameters
     parser.add_argument("--code-path", type=str, required=True)
     parser.add_argument("--no-local-save", action='store_true', help='no save checkpoints to local path for limited disk volume')

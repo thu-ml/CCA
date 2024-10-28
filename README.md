@@ -73,46 +73,71 @@ Before proceed, please download the ImageNet dataset and pretrained [VAR](https:
 To train VAR-{d16, d20, d24, d30, d36-s} on ImageNet 256x256, you can run the following command:
 ```shell
 # d16, 256x256
-torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
   --depth=16 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-3 --wpe=0.1 \
-  --loss_type="CCA" --beta=0.02 --lambda_=50.0 --ac=1 --exp_name="default" --dpr_ratio=0.0 \
+  --loss_type="CCA" --beta=0.02 --lambda_=50.0 --ac=4 --exp_name="default" --dpr_ratio=0.0 --uncond_ratio=0.1 \
   --ref_ckpt="/path/to/var/var_d16.pth" --data_path="/path/to/imagenet"
 
 # d20, 256x256
-torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
   --depth=20 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-3 --wpe=0.1 \
-  --loss_type="CCA" --beta=0.02 --lambda_=50.0 --ac=1 --exp_name="default" \
+  --loss_type="CCA" --beta=0.02 --lambda_=50.0 --ac=8 --exp_name="default" --uncond_ratio=0.1 \
   --ref_ckpt="/path/to/var/var_d20.pth" --data_path="/path/to/imagenet"
 
 # d24, 256x256
-torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
   --depth=24 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-4 --wpe=0.01 \
-  --loss_type="CCA" --beta=0.02 --lambda_=100.0 --ac=1 --exp_name="default" \
+  --loss_type="CCA" --beta=0.02 --lambda_=100.0 --ac=8 --exp_name="default" --uncond_ratio=0.1 \
   --ref_ckpt="/path/to/var/var_d24.pth" --data_path="/path/to/imagenet"
 
 # d30, 256x256
-torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
   --depth=30 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-5 --wpe=0.01 --twde=0.08 \
-  --loss_type="CCA" --beta=0.02 --lambda_=1000.0 --ac=1 --exp_name="default" \
+  --loss_type="CCA" --beta=0.02 --lambda_=1000.0 --ac=16 --exp_name="default" --uncond_ratio=0.1 \
   --ref_ckpt="/path/to/var/var_d30.pth" --data_path="/path/to/imagenet"
 ```
 A folder named `local_output` will be created in the base dir (or VAR dir) to save the checkpoints and logs.
 
 ### LlamaGen Command
 
+LlamaGen trains models on latent data instead of raw image data. Before starting training, you should first generate image latents from imagenet dataset and store them in a local directory. Refer to [./LlamaGen/GETTING_STARTED.md](./LlamaGen/GETTING_STARTED.md) for details.
+
+Then run the following command
+
+```shell
+# LlamaGen B/L/XL, 384x384
+torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" LlamaGen_finetune.py \
+    --global-batch-size 256 --gradient-accumulation-step 16 --epochs=1 --ckpt-every=5000 \
+    --lr=1e-5 --loss_type="CCA" --expid "default" \
+    --lambda_=1000.0/300.0/1000.0 --beta=0.02 --uncond_ratio=0.1 --keep_dropout \
+    --ref_ckpt="/path/to/LlamaGen/c2i_B_384.pt/c2i_L_384.pt/c2i_XL_384.pt" \
+    --code-path="/path/to/imagenet384_train_code_c2i_flip_ten_crop/" \
+    --image-size=384 --gpt-model="GPT-B/GPT-L/GPT-XL"
+
+# LlamaGen XXL/3B, 384x384
+torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" LlamaGen_finetune_fsdp.py \
+    --global-batch-size 256 --gradient-accumulation-step 16 --epochs=1 --ckpt-every=5000 \
+    --lr=1e-5 --loss_type="CCA" --expid "default" \
+    --lambda_=1000.0/500.0 --beta=0.02 --uncond_ratio=0.1 --keep_dropout \
+    --ref_ckpt="/path/to/LlamaGen/c2i_XXL_384.pt/c2i_3B_384.pt" \
+    --code-path="/path/to/imagenet384_train_code_c2i_flip_ten_crop/" \
+    --image-size=384 --gpt-model="GPT-XXL/GPT-3B"
+```
+
+
 ## Evaluation
 Before evaluation, you should first generate 50K image samples and store them in an npz file.
 
 ### For VAR:
 ```shell
-VAR_sample python VAR_sample.py --cfg=1.0 --ckpt_path="/path/to/var/var_d20.pth" --vae_ckpt="./vae_ch160v4096z32.pth" --depth 20
+python VAR_sample.py --cfg=1.0 --ckpt_path="/path/to/var/var_d20.pth" --vae_ckpt="./vae_ch160v4096z32.pth" --depth 20
 ```
 ### For LlamaGen:
 ```shell
-VAR_sample python LLamaGen_sample_ddp.py --cfg=1.0 --ckpt_path="/path/to/var/var_d20.pth" --vae_ckpt="./vae_ch160v4096z32.pth" --depth 20
+torchrun --nnodes=1 --nproc_per_node=8 --node_rank=0 --master_port=12445 LLamaGen_sample_ddp.py --vq-ckpt="path/to/LlamaGen/vq_ds16_c2i.pt" --ckpt_path="/path/to/LlamaGen/c2i_XL_384.pt" --gpt-model="GPT-XL" --image-size=384 --image-size-eval=256 --per-proc-batch-size=48 --cfg-scale=1.0 --num-fid-samples=50000
 ```
 
-We use the standard OPENAI evaluation metric to calculate FID and IS. Please refer to `./LlamaGen/evaluations/c2i` for evaluation code.
+We use the standard OPENAI evaluation metric to calculate FID and IS. Please refer to [./LlamaGen/evaluations/c2i](./LlamaGen/evaluations/c2i) for evaluation code.
 
 ## BibTeX
 If you find our project helpful, please cite
