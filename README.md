@@ -70,16 +70,54 @@ Before proceed, please download the ImageNet dataset and pretrained [VAR](https:
 
 ### VAR Command
 
+To train VAR-{d16, d20, d24, d30, d36-s} on ImageNet 256x256, you can run the following command:
+```shell
+# d16, 256x256
+torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+  --depth=16 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-3 --wpe=0.1 \
+  --loss_type="CCA" --beta=0.02 --lambda_=50.0 --ac=1 --exp_name="default" --dpr_ratio=0.0 \
+  --ref_ckpt="/path/to/var/var_d16.pth" --data_path="/path/to/imagenet"
+
+# d20, 256x256
+torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+  --depth=20 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-3 --wpe=0.1 \
+  --loss_type="CCA" --beta=0.02 --lambda_=50.0 --ac=1 --exp_name="default" \
+  --ref_ckpt="/path/to/var/var_d20.pth" --data_path="/path/to/imagenet"
+
+# d24, 256x256
+torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+  --depth=24 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-4 --wpe=0.01 \
+  --loss_type="CCA" --beta=0.02 --lambda_=100.0 --ac=1 --exp_name="default" \
+  --ref_ckpt="/path/to/var/var_d24.pth" --data_path="/path/to/imagenet"
+
+# d30, 256x256
+torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" VAR_finetune.py \
+  --depth=30 --bs=256 --ep=1 --tblr=2e-5 --fp16=1 --alng=1e-5 --wpe=0.01 --twde=0.08 \
+  --loss_type="CCA" --beta=0.02 --lambda_=1000.0 --ac=1 --exp_name="default" \
+  --ref_ckpt="/path/to/var/var_d30.pth" --data_path="/path/to/imagenet"
+```
+A folder named `local_output` will be created in the base dir (or VAR dir) to save the checkpoints and logs.
 
 ### LlamaGen Command
 
 ## Evaluation
+Before evaluation, you should first generate 50K image samples and store them in an npz file.
 
+### For VAR:
+```shell
+VAR_sample python VAR_sample.py --cfg=1.0 --ckpt_path="/path/to/var/var_d20.pth" --vae_ckpt="./vae_ch160v4096z32.pth" --depth 20
+```
+### For LlamaGen:
+```shell
+VAR_sample python LLamaGen_sample_ddp.py --cfg=1.0 --ckpt_path="/path/to/var/var_d20.pth" --vae_ckpt="./vae_ch160v4096z32.pth" --depth 20
+```
+
+We use the standard OPENAI evaluation metric to calculate FID and IS. Please refer to `./LlamaGen/evaluations/c2i` for evaluation code.
 
 ## BibTeX
 If you find our project helpful, please cite
 ```bibtex
-@article{chen2024CCA,
+@article{chen2024toward,
   title={Toward Guidance-Free AR Visual Generation via Condition Contrastive Alignment},
   author={Chen, Huayu and Su, Hang and Sun, Peize and Zhu, Jun},
   journal={arXiv preprint arXiv:2410.09347},

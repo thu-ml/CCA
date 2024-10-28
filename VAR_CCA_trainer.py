@@ -1,5 +1,9 @@
 # Modified from ./VAR/trainer.py
 
+# Include VAR repo as a library
+import sys
+sys.path.append("./VAR")
+
 import time
 from typing import List, Optional, Tuple, Union
 
@@ -36,6 +40,7 @@ class VAR_CCATrainer(object):
 
         self.var, self.vae_local, self.quantize_local = var, vae_local, vae_local.quantize
         self.quantize_local: VectorQuantizer2
+        self.ref_var_wo_ddp: VAR = ref_var_wo_ddp  # after torch.compile
         self.var_wo_ddp: VAR = var_wo_ddp  # after torch.compile
         self.var_opt = var_opt
         
@@ -201,7 +206,7 @@ class VAR_CCATrainer(object):
             grad_norm = grad_norm.item() if grad_norm is not None else grad_norm
             metric_lg.update(Lm=Lmean, Lt=Ltail, Accm=acc_mean, Acct=acc_tail, tnm=grad_norm)
         
-        if g_it < 50 or (g_it + 1) % (50 * self.args.ac) == 0:
+        if g_it < 50 or (g_it + 1) % 100 == 0:
             chosen_reward = img_logp_gap.float().mean().detach()
             rejected_reward = negative_img_logp_gap.float().mean().detach()
             uncond_reward = negative_img_logp_gap[TBM].float().mean().detach()

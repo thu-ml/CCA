@@ -1,9 +1,12 @@
 # Modified from ./VAR/train.py
 
+# Include VAR repo as a library
+import sys
+sys.path.append("./VAR")
+
 import gc
 import os
 import shutil
-import sys
 import time
 import warnings
 from functools import partial
@@ -14,11 +17,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 import dist
-from VAR.models.var import VAR
-from VAR.models.vqvae import VQVAE
-from VAR.utils import arg_util, misc
-from VAR.utils.data import build_dataset
-from VAR.utils.data_sampler import DistInfiniteBatchSampler
+from models.var import VAR
+from models.vqvae import VQVAE
+from utils import arg_util, misc
+from utils.data import build_dataset
+from utils.data_sampler import DistInfiniteBatchSampler
 
 
 def build_vae_var_with_ref(
@@ -118,12 +121,12 @@ def build_everything(args: arg_util.Args):
     
     # build models
     from torch.nn.parallel import DistributedDataParallel as DDP
-    from VAR.models import VAR, VQVAE
+    from models import VAR, VQVAE
+    from utils.amp_sc import AmpOptimizer
+    from utils.lr_control import filter_params
     from VAR_CCA_trainer import VAR_CCATrainer
-    from VAR.utils.amp_sc import AmpOptimizer
-    from VAR.utils.lr_control import filter_params
-    
-    vae_local, var_wo_ddp = build_vae_var_with_ref(
+
+    vae_local, var_wo_ddp, ref_var_wo_ddp = build_vae_var_with_ref(
         V=4096, Cvae=32, ch=160, share_quant_resi=4,        # hard-coded VQVAE hyperparameters
         device=dist.get_device(), patch_nums=args.patch_nums,
         num_classes=num_classes, depth=args.depth, shared_aln=args.saln, attn_l2_norm=args.anorm,
@@ -201,13 +204,14 @@ def main_training():
     parser.add_argument("--beta", type=float, default=0.01, help='CCA beta parameter')
     parser.add_argument("--lambda_", type=float, default=100.0, help='CCA lambda parameter')
     parser.add_argument("--uncond_ratio", type=float, default=0.1, help='Probability of unconditional masking. Set 0.0 if CFG is not required.')
-    parser.add_argument("--dpr_ratio", type=float, help='Dropout rate. 1.0 means the same dropout rate as pretraining. 0.0 means no dropout.')
+    parser.add_argument("--dpr_ratio", type=float, default=1.0, help='Dropout rate. 1.0 means the same dropout rate as pretraining. 0.0 means no dropout.')
     parser.add_argument("--loss_type", type=str, default="CCA",  help='Loss type. Could be CCA, DPO, or unlearning.')
-    CCA_args = parser.parse_known_args()
+    CCA_args = parser.parse_known_args()[0]
     # Original VAR args
     args: arg_util.Args = arg_util.init_dist_and_get_args()
+    print(CCA_args)
     # Combine args for CCA and VAR
-    args.ref_ckpt, args.beta, args.lambda_, args.uncond_ratio, args.dpr_ratio = CCA_args.ref_ckpt, CCA_args.beta, CCA_args.lambda_, CCA_args.uncond_ratio, CCA_args.dpr_ratio
+    args.ref_ckpt, args.beta, args.lambda_, args.uncond_ratio, args.dpr_ratio, args.loss_type = CCA_args.ref_ckpt, CCA_args.beta, CCA_args.lambda_, CCA_args.uncond_ratio, CCA_args.dpr_ratio, CCA_args.loss_type
     
     if args.local_debug:
         torch.autograd.set_detect_anomaly(True)
@@ -281,7 +285,7 @@ def main_training():
 def train_one_ep(ep: int, is_first_ep: bool, start_it: int, args: arg_util.Args, tb_lg: misc.TensorboardLogger, ld_or_itrt, iters_train: int, trainer):
     # import heavy packages after Dataloader object creation
     from VAR_CCA_trainer import VAR_CCATrainer
-    from VAR.utils.lr_control import lr_wd_annealing
+    from utils.lr_control import lr_wd_annealing
     trainer: VAR_CCATrainer
     
     step_cnt = 0

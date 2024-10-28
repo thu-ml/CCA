@@ -1,4 +1,6 @@
-
+# Include VAR repo as a library
+import sys
+sys.path.append("./VAR")
 
 ################## 1. Download checkpoints and build models
 import os
@@ -16,7 +18,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--ckpt_path", type=str, default='path/to/your/var.pth')
 parser.add_argument("--vae_ckpt", type=str, default='./vae_ch160v4096z32.pth')
-parser.add_argument("--cfg", type=float, default=1.5)
+parser.add_argument("--cfg", type=float, default=1.0)
 parser.add_argument("--depth", type=int, default=16)
 parser.add_argument("--sample_dir", type=str, default="./samples")
 

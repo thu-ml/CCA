@@ -1,5 +1,10 @@
 # Modified from:
 #  ./LlamaGen/autoregressive/train/train_c2i_fsdp.py
+
+# Include LlamaGen repo as a library
+import sys
+sys.path.append("./LlamaGen")
+
 import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -24,10 +29,10 @@ from glob import glob
 import wandb
 from copy import deepcopy
 
-from LlamaGen.utils.logger import create_logger
-from LlamaGen.utils.ema import update_ema, requires_grad
-from LlamaGen.dataset.build import build_dataset
-from LlamaGen.autoregressive.models.gpt import GPT_models
+from utils.logger import create_logger
+from utils.ema import update_ema, requires_grad
+from dataset.build import build_dataset
+from autoregressive.models.gpt import GPT_models
 
 
 

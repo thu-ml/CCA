@@ -1,6 +1,10 @@
 # Modified from:
 #   ./LlamaGen/autoregressive/sample/sample_c2i_ddp.py
 
+# Include LlamaGen repo as a library
+import sys
+sys.path.append("./LlamaGen")
+
 import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -14,9 +18,9 @@ import numpy as np
 import math
 import argparse
 
-from LlamaGen.tokenizer.tokenizer_image.vq_model import VQ_models
-from LlamaGen.autoregressive.models.gpt import GPT_models
-from LlamaGen.autoregressive.models.generate import generate
+from tokenizer.tokenizer_image.vq_model import VQ_models
+from autoregressive.models.gpt import GPT_models
+from autoregressive.models.generate import generate
 
 
 def create_npz_from_sample_folder(sample_dir, num=50_000):
