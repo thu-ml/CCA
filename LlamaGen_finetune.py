@@ -110,6 +110,7 @@ def main(args):
             num_classes=args.num_classes,
             cls_token_num=args.cls_token_num,
             model_type=args.gpt_type,
+            class_dropout_prob=0.0,
             resid_dropout_p=dropout_p,
             ffn_dropout_p=dropout_p,
             drop_path_rate=args.drop_path_rate,
