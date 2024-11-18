@@ -130,12 +130,14 @@ Before evaluation, you should first generate 50K image samples and store them in
 
 ### For VAR:
 ```shell
-python VAR_sample.py --cfg=1.0 --ckpt_path="/path/to/var/var_d20.pth" --vae_ckpt="./vae_ch160v4096z32.pth" --depth 20
+python VAR_sample.py --cfg=0.0 --ckpt_path="/path/to/var/var_d20.pth" --vae_ckpt="./vae_ch160v4096z32.pth" --depth 20
 ```
 ### For LlamaGen:
 ```shell
 torchrun --nnodes=1 --nproc_per_node=8 --node_rank=0 --master_port=12445 LLamaGen_sample_ddp.py --vq-ckpt="path/to/LlamaGen/vq_ds16_c2i.pt" --ckpt_path="/path/to/LlamaGen/c2i_XL_384.pt" --gpt-model="GPT-XL" --image-size=384 --image-size-eval=256 --per-proc-batch-size=48 --cfg-scale=1.0 --num-fid-samples=50000
 ```
+
+Note that for LlamaGen guidance scale $s=1$ means guidance-free, while for VAR it is $s=0$ due to a minor difference in their paper's definition.
 
 We use the standard OPENAI evaluation metric to calculate FID and IS. Please refer to [./LlamaGen/evaluations/c2i](./LlamaGen/evaluations/c2i) for evaluation code.
 
