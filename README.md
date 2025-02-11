@@ -1,5 +1,12 @@
 # Condition Contrastive Alignment (CCA): Autoregressive Visual Generation Without Guided Sampling
 
+<div>
+  <p align="center" style="font-size: larger;">
+    <strong>ICLR 2025 Oral Presentation</strong>
+  </p>
+</div>
+
+
 <p align="center">
 <img src="assets/compare.JPG" width=95%>
 <p>
